@@ -9,20 +9,17 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 
 # --- CONFIG ---
-# Tera Token aur MongoDB URL maine fix kar diya hai
 TOKEN = '8676988617:AAF8sRBKuScBqbWP23ggZRrerAGabu0dfCw'
 MONGO_URL = "mongodb+srv://riderbhai:riderbhai321@cluster0.yvrweuu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
 ADMIN_ID = 6075779781 
 bot = telebot.TeleBot(TOKEN)
 
 # --- MONGODB CONNECTION ---
-try:
-    # timeout 5 second rakha hai taaki bot jaldi error pakad sake
-    client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
-    db = client['RiderBot']
-    users_col = db['users']
-    keys_col = db['keys']
+client = MongoClient(MONGO_URL)
+db = client['RiderBot']
+users_col = db['users']
+keys_col = db['keys']
+
     client.admin.command('ping')
     print("✅ MongoDB Connected Successfully!")
 except Exception as e:
