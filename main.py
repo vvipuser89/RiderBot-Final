@@ -11,7 +11,8 @@ from pymongo import MongoClient
 # --- CONFIG ---
 # Tera Token aur MongoDB URL maine fix kar diya hai
 TOKEN = '8676988617:AAF8sRBKuScBqbWP23ggZRrerAGabu0dfCw'
-MONGO_URL = mongodb+srv://riderbhai:<riderbhai321>@cluster0.yvrweeu.mongodb.net/?appName=Cluster0
+MONGO_URL = "mongodb+srv://riderbhai:riderbhai321@cluster0.yvrweuu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
 ADMIN_ID = 6075779781 
 bot = telebot.TeleBot(TOKEN)
 
