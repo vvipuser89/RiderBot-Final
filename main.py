@@ -11,7 +11,7 @@ from pymongo import MongoClient
 # --- CONFIG ---
 TOKEN = '8676988617:AAF8sRBKuScBqbWP23ggZRrerAGabu0dfCw'
 # DNS Error bypass karne ke liye maine isme 2-3 backup format daal diye hain
-MONGO_URL = "mongodb+srv://riderbhai:riderbhai321@cluster0.yvrweuu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://riderbhai:riderbhai321@cluster0.yvrweuu.mongodb.net/?retryWrites=true&w=majority")
 ADMIN_ID = 6075779781 
 bot = telebot.TeleBot(TOKEN)
 
