@@ -14,11 +14,17 @@ TOKEN = '8676988617:AAF8sRBKuScBqbWP23ggZRrerAGabu0dfCw'
 MONGO_URL = "mongodb://riderbhai:riderbhai321@cluster0-shard-00-00.yvrweuu.mongodb.net:27017,cluster0-shard-00-01.yvrweuu.mongodb.net:27017,cluster0-shard-00-02.yvrweuu.mongodb.net:27017/RiderBot?ssl=true&replicaSet=atlas-yvrweuu-shard-0&authSource=admin&retryWrites=true&w=majority"
 ADMIN_ID = 6075779781 
 bot = telebot.TeleBot(TOKEN)
+
 # --- MONGODB CONNECTION ---
-client = MongoClient(MONGO_URL)
-db = client['RiderBot']
-users_col = db['users']
-keys_col = db['keys']
+try:
+    client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
+    db = client['RiderBot']
+    users_col = db['users']
+    keys_col = db['keys']
+    client.admin.command('ping')
+    print("✅ MongoDB Connected Successfully!")
+except Exception as e:
+    print(f"❌ Connection Error: {e}")
 
 # --- ENGINE SETUP ---
 if not os.path.exists("MHDDoS"):
@@ -162,4 +168,3 @@ def handle_attack(m):
 
 print("🚀 Dangerous Bot is Online!")
 bot.infinity_polling()
-    
